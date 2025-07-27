@@ -1,5 +1,3 @@
-// auth.js (menyimpelkan index.js)
-
 import pkg from '@whiskeysockets/baileys';
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } = pkg;
 import { Boom } from '@hapi/boom';
@@ -42,7 +40,6 @@ export const connectToWhatsApp = async (pluginsLoader, PLUGINS_DIR, globalConfig
     const loadedPlugins = await pluginsLoader(PLUGINS_DIR);
     console.log(`[PLUGIN LOADER] Memuat ${loadedPlugins.length} plugin dari ${PLUGINS_DIR}`);
 
-    //==== HANDLER KONEKSI=======
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
@@ -58,16 +55,16 @@ export const connectToWhatsApp = async (pluginsLoader, PLUGINS_DIR, globalConfig
 
             if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.badSession) {
                 console.log('[PERINGATAN] Sesi buruk atau logout! Hapus folder "sesi" dan scan ulang untuk memulai sesi baru.');
-                connectToWhatsApp(pluginsLoader, PLUGINS_DIR, globalConfig); // Rekoneksi
+                connectToWhatsApp(pluginsLoader, PLUGINS_DIR, globalConfig);
             } else if (reason === DisconnectReason.connectionClosed ||
                 reason === DisconnectReason.connectionLost ||
                 reason === DisconnectReason.restartRequired ||
                 reason === DisconnectReason.timedOut) {
                 console.log('[INFO] Koneksi terputus/restart diperlukan, mencoba menyambungkan ulang...');
-                connectToWhatsApp(pluginsLoader, PLUGINS_DIR, globalConfig); // Rekoneksi
+                connectToWhatsApp(pluginsLoader, PLUGINS_DIR, globalConfig);
             } else {
                 console.log(`[ERROR] Koneksi ditutup dengan alasan tidak terduga: ${reason}, ${lastDisconnect?.error}`);
-                connectToWhatsApp(pluginsLoader, PLUGINS_DIR, globalConfig); // Rekoneksi
+                connectToWhatsApp(pluginsLoader, PLUGINS_DIR, globalConfig);
             }
         } else if (connection === 'open') {
             console.log('[KONEKSI] Berhasil terhubung ke WhatsApp!');
@@ -76,9 +73,7 @@ export const connectToWhatsApp = async (pluginsLoader, PLUGINS_DIR, globalConfig
         }
     });
 
-    //===== SAVE AUTH
     sock.ev.on('creds.update', saveCreds);
 
-    //=========Bagian return
     return { sock, loadedPlugins };
 };
