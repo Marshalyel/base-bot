@@ -1,19 +1,11 @@
+// index.js
 import { createRequire } from 'module';
-import qrcode from 'qrcode-terminal';
-import pkg from '@whiskeysockets/baileys';
-const { makeWASocket, useMultiFileAuthState, DisconnectReason, Presence, Browsers } = pkg;
-
-import { Boom } from '@hapi/boom';
-import P from 'pino';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { pathToFileURL } from 'url';
+import { dirname, join, resolve } from 'path'; // Menggunakan join dan resolve dari 'path'
+import { fileURLToPath, pathToFileURL } from 'url';
+import { readFileSync, readdirSync } from 'fs'; // Menggunakan readFileSync dan readdirSync dari 'fs'
 
 import globalConfig from './settings/config.js';
-
-let currentSock = null;
+import { connectToWhatsApp } from './auth.js'; // Mengimpor fungsi dari auth.js
 
 const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
@@ -23,13 +15,13 @@ console.log('\n=====================================');
 console.log('         BOT WHATSAPP DIMULAI        ');
 console.log('=====================================\n');
 
-const PLUGINS_DIR = path.resolve(__dirname, "./command");
+const PLUGINS_DIR = resolve(__dirname, "./command");
 
 const pluginsLoader = async (directory) => {
     let plugins = [];
-    const files = fs.readdirSync(directory);
+    const files = readdirSync(directory);
     for (const file of files) {
-        const filePath = path.join(directory, file);
+        const filePath = join(directory, file); // Menggunakan join
         if (filePath.endsWith(".js")) {
             try {
                 const fileUrl = pathToFileURL(filePath).href;
@@ -49,73 +41,8 @@ const pluginsLoader = async (directory) => {
     return plugins;
 };
 
-async function connectToWhatsApp() {
-    if (currentSock) {
-        try {
-            if (currentSock && typeof currentSock.end === 'function') {
-                await currentSock.end();
-            }
-        } catch (error) {
-            console.log('[RESTART ERROR] Gagal menutup koneksi sebelumnya:', error);
-        }
-        currentSock = null;
-    }
-
-    const { state, saveCreds } = await useMultiFileAuthState('sesi');
-
-    const sock = makeWASocket({
-        logger: P({ level: 'silent' }),
-        printQRInTerminal: true,
-        auth: state,
-        browser: Browsers.macOS('Desktop'),
-        msgRetryCounterMap: {},
-        retryRequestDelayMs: 250,
-        markOnlineOnConnect: false,
-        emitOwnEvents: true,
-        patchMessageBeforeSending: (msg) => {
-            if (msg.contextInfo) delete msg.contextInfo.mentionedJid;
-            return msg;
-        }
-    });
-
-    currentSock = sock;
-
-    const pluginsDisable = false;
-    const loadedPlugins = await pluginsLoader(PLUGINS_DIR);
-    console.log(`[PLUGIN LOADER] Memuat ${loadedPlugins.length} plugin dari ${PLUGINS_DIR}`);
-
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr) {
-            console.log('\n[QR] Silakan scan QR code ini dengan aplikasi WhatsApp Anda:');
-            qrcode.generate(qr, { small: true });
-            return;
-        }
-
-        if (connection === 'close') {
-            let reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            console.log(`[KONEKSI] Terputus. Status Kode: ${reason}`);
-
-            if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.badSession) {
-                console.log('[PERINGATAN] Sesi buruk atau logout! Hapus folder "sesi" dan scan ulang untuk memulai sesi baru.');
-                connectToWhatsApp();
-            } else if (reason === DisconnectReason.connectionClosed ||
-                reason === DisconnectReason.connectionLost ||
-                reason === DisconnectReason.restartRequired ||
-                reason === DisconnectReason.timedOut) {
-                console.log('[INFO] Koneksi terputus/restart diperlukan, mencoba menyambungkan ulang...');
-                connectToWhatsApp();
-            } else {
-                console.log(`[ERROR] Koneksi ditutup dengan alasan tidak terduga: ${reason}, ${lastDisconnect?.error}`);
-                connectToWhatsApp();
-            }
-        } else if (connection === 'open') {
-            console.log('[KONEKSI] Berhasil terhubung ke WhatsApp!');
-        } else if (connection === 'connecting') {
-            console.log('[KONEKSI] Sedang mencoba terhubung...');
-        }
-    });
+async function main() {
+    const { sock, loadedPlugins } = await connectToWhatsApp(pluginsLoader, PLUGINS_DIR, globalConfig);
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type === 'notify') {
@@ -184,9 +111,6 @@ async function connectToWhatsApp() {
             }
         }
     });
-
-    sock.ev.on('creds.update', saveCreds);
 }
 
-
-connectToWhatsApp();
+main(); // Panggil fungsi main untuk memulai bot
