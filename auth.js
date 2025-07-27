@@ -76,9 +76,9 @@ export const connectToWhatsApp = async (pluginsLoader, PLUGINS_DIR, globalConfig
         }
     });
 
-    // Event handler untuk pembaruan kredensial
+    //===== SAVE AUTH
     sock.ev.on('creds.update', saveCreds);
 
-    // Mengembalikan objek sock dan loadedPlugins agar bisa digunakan di index.js
+    //=========Bagian return
     return { sock, loadedPlugins };
 };
