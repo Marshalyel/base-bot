@@ -6,7 +6,7 @@ import { Boom } from '@hapi/boom';
 import P from 'pino';
 import qrcode from 'qrcode-terminal';
 
-let currentSock = null; // Menyimpan instance socket WhatsApp saat ini
+let currentSock = null;
 
 export const connectToWhatsApp = async (pluginsLoader, PLUGINS_DIR, globalConfig) => {
     if (currentSock) {
@@ -42,7 +42,7 @@ export const connectToWhatsApp = async (pluginsLoader, PLUGINS_DIR, globalConfig
     const loadedPlugins = await pluginsLoader(PLUGINS_DIR);
     console.log(`[PLUGIN LOADER] Memuat ${loadedPlugins.length} plugin dari ${PLUGINS_DIR}`);
 
-    // Event handler untuk koneksi
+    //==== HANDLER KONEKSI=======
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
