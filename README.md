@@ -6,6 +6,7 @@
 
 ├── package.json
 ├── index.js                 <-- File utama bot Anda (titik masuk)
+├── auth.js    <-- File Untuk autentikasi penting untuk index.js
 ├── settings
 │   └── config.js
 ├── sesi/      <-- Folder untuk menyimpan sesi WhatsApp (otomatis dibuat)
